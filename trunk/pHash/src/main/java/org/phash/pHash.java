@@ -2,6 +2,9 @@ package org.phash;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class pHash
  {
@@ -60,7 +63,50 @@ public class pHash
 
   static
    {
-    System.loadLibrary("pHash-jni");
+    String osName= System.getProperty("os.name");
+
+    String libName = null;
+    if(osName.contains("Windows"))
+     libName = "pHash-jni.dll";
+    else
+     libName = "libpHash-jni.so";
+
+    File libFile = new File("./" + libName);
+    InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(libName);
+    if(is == null)
+     throw new IllegalStateException("Current Operating System is not supported");
+
+    OutputStream os = null;
+    try
+     {
+      if(!libFile.exists())
+       libFile.createNewFile();
+      libFile.deleteOnExit();
+      os = new FileOutputStream(libFile);
+
+      byte buffer[] = new byte[10240];
+      int bytesRead = 0;
+      while((bytesRead = is.read(buffer)) > 0)
+       os.write(buffer, 0, bytesRead);
+      os.flush();
+     }
+    catch(Exception e) {}
+    finally
+    {
+     try
+      {
+       is.close();
+      }
+     catch(Exception e){}
+     try
+      {
+       os.close();
+      }
+     catch(Exception e){}
+    }
+
+
+    System.load(libFile.getAbsolutePath());
     pHashInit();
 
     Runtime.getRuntime().addShutdownHook(new Thread()
